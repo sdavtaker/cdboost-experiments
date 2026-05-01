@@ -1,0 +1,118 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{microtype}
+\usepackage{parskip}
+
+\title{VDW14 Tick-Counter Experiment\\
+  \large CDBoost Adaptation --- Portless PDEVS}
+\author{Damián Vicino}
+\date{2026}
+
+\begin{document}
+\maketitle
+
+\section*{Reference}
+Vicino, Dalle, Wainer.
+\textit{A Data Type for Discretized Time Representation in DEVS.}
+SIMUTOOLS 2014. \texttt{hal-01055555}.
+
+\section*{Canonical Model}
+
+The tick-counter coupled model $C$ demonstrates causality errors from
+floating-point time representation.
+
+\[
+  C = \langle X_C,\, Y_C,\, D,\, \{M_d\},\, \text{EIC},\, \text{EOC},\, \text{IC} \rangle
+\]
+\[
+  D = \{G_{1/10},\; G_{1},\; K\},\quad
+  X_C = \emptyset,\quad
+  Y_C \subseteq \mathbb{N}
+\]
+\[
+  \text{IC} = \{(G_{1/10}.\texttt{out} \to K.\texttt{add}),\;
+               (G_{1}.\texttt{out} \to K.\texttt{reset})\}
+\]
+\[
+  \text{EOC} = \{(K.\texttt{sum} \to C.\texttt{out})\}
+\]
+
+Generator $G_p = \langle S_G, ta_G, \delta^G_{\text{int}}, \lambda_G \rangle$:
+\[
+  S_G = \mathbb{R}^+,\quad
+  ta_G(s) = p,\quad
+  \delta^G_{\text{int}}(s) = s,\quad
+  \lambda_G(s) = \mathit{tick}
+\]
+
+Counter $K = \langle S_K, ta_K, \delta^K_{\text{int}},
+\delta^K_{\text{ext}}, \delta^K_{\text{con}}, \lambda_K \rangle$,
+$S_K = \mathbb{N} \times \{\text{idle},\, \text{ready}\}$:
+\begin{align*}
+  ta_K(n,\text{idle})  &= \infty \qquad ta_K(n,\text{ready}) = 0 \\
+  \delta^K_{\text{ext}}(s,e,x) &=
+    \begin{cases}
+      (n + 1,\; \text{idle})  & x \in \texttt{add}\\
+      (n,\;     \text{ready}) & x \in \texttt{reset}
+    \end{cases} \\
+  \delta^K_{\text{int}}(n,\text{ready}) &= (0,\, \text{idle}) \\
+  \lambda_K(n, \text{ready})            &= n
+\end{align*}
+
+Expected invariant: every output of $K$ equals $10$.
+
+\section*{CDBoost Adaptation}
+
+CDBoost implements a \emph{portless} PDEVS: all submodels in a coupled model
+share a single message type \texttt{MSG}.  Routing is expressed as a list of
+\texttt{(sender, receiver)} pointer pairs; there are no named ports.
+
+Because $K$ receives two semantically distinct signals (\texttt{add} and
+\texttt{reset}) on a single channel, the message \emph{value} must distinguish
+them.  The adopted convention is:
+
+\begin{center}
+\begin{tabular}{@{}ll@{}}
+  \toprule
+  \texttt{MSG} value & Semantics \\
+  \midrule
+  $v \neq 0$ & add $v$ to the counter \\
+  $0$        & output current count, then reset to zero \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+This matches the \texttt{infinite\_counter} model shipped with CDBoost.
+$G_{1/10}$ outputs $1$; $G_{1}$ outputs $0$.  Both are routed to $K$ via IC.
+
+\paragraph{Confluence.}
+When $G_{1/10}$ and $G_1$ are simultaneously imminent---which occurs at every
+integer second under exact arithmetic---the confluence function determines
+whether the add or the reset is processed first:
+\[
+  \delta^K_{\text{con}}(s, e, x) = \delta^K_{\text{ext}}
+      \!\left(\delta^K_{\text{int}}(s),\; 0,\; x\right)
+\]
+This rule applies the internal transition first (clear the ready flag if set),
+then applies the external input, which corresponds to processing \texttt{add}
+before \texttt{reset} when $G_{1/10} \prec G_1$.
+
+\paragraph{Time representation.}
+CDBoost requires a \texttt{TIME} type with a static \texttt{Inf()} method;
+primitive \texttt{float} and \texttt{boost::rational} do not satisfy this
+directly and need thin wrappers (\texttt{cdboost::float\_time},
+\texttt{cdboost::rational\_time}).
+
+\section*{Expected Observations}
+
+\begin{itemize}
+  \item \textbf{Rational time:} $K$ always outputs $10$.  The histogram has a
+        single bar.
+  \item \textbf{Float time:} $G_{1/10}$'s period $0.1$ is not exactly
+        representable in IEEE~754.  Accumulated rounding error occasionally
+        shifts a $G_{1/10}$ tick across a 1-second boundary; $K$ then outputs
+        $9$ or $11$.  The effect is stochastic and grows with simulation length.
+\end{itemize}
+
+\end{document}

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: BSD-2-Clause
 #include "k_counter.hpp"
 #include "reset_gen.hpp"
 #include "tick_gen.hpp"

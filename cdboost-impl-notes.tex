@@ -94,7 +94,7 @@ Common choices:
   \toprule
   Type & Representation & Risk \\
   \midrule
-  \texttt{double} & IEEE 754 double & $1/10$ not exact; accumulation error \\
+  \texttt{double} & IEEE 754 double & $1/10$ not exact; errors may break causality chain and are unbounded \\
   \texttt{boost::rational<int>} & exact fraction & no accumulation error; heavier compute \\
   \bottomrule
 \end{tabular}

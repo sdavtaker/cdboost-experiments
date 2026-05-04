@@ -1,23 +1,8 @@
-\documentclass[11pt,a4paper]{article}
-\usepackage{amsmath,amssymb}
-\usepackage{booktabs}
-\usepackage{microtype}
-\usepackage{parskip}
-
-\title{CDBoost --- Implementation Notes\\
-  \large Assumptions and Context Common to All Experiments}
-\author{Damián Vicino}
-\date{2026}
-
-\begin{document}
-\maketitle
-
-This document records the formalism choices, simulator capabilities, and
+This section records the formalism choices, simulator capabilities, and
 conventions that apply to every experiment in this repository.
-Experiment-specific specs should reference these notes rather than repeat them.
 
 % ─────────────────────────────────────────────────────────────────────────────
-\section*{Foundational Reference}
+\subsection*{Foundational Reference}
 
 The tick-counter experiment reproduced in this repository originates from:
 
@@ -28,7 +13,7 @@ The tick-counter experiment reproduced in this repository originates from:
 \end{quote}
 
 % ─────────────────────────────────────────────────────────────────────────────
-\section*{CDBoost PDEVS}
+\subsection*{CDBoost PDEVS}
 
 CDBoost implements Parallel DEVS (PDEVS) as originally formulated.
 The original PDEVS formalism does not specify a port system; CDBoost
@@ -49,7 +34,7 @@ internal-first:
     \delta_{\text{ext}}\!\left(\delta_{\text{int}}(s),\; 0,\; x\right)
 \]
 
-\subsection*{Coupled Model Structure}
+\subsubsection*{Coupled Model Structure}
 
 \texttt{coupled<TIME>} takes four constructor arguments:
 \begin{itemize}
@@ -60,7 +45,7 @@ internal-first:
 \end{itemize}
 
 % ─────────────────────────────────────────────────────────────────────────────
-\section*{Message Type}
+\subsection*{Message Type}
 
 Because \texttt{MSG} is shared across a coupled model, semantically
 distinct signals must be encoded in the value.  The convention used in
@@ -81,7 +66,7 @@ Concretely, \texttt{MSG = std::any} wrapping \texttt{int}.  The
 \texttt{infinite\_counter} basic model in CDBoost expects this encoding.
 
 % ─────────────────────────────────────────────────────────────────────────────
-\section*{TIME Type}
+\subsection*{TIME Type}
 
 CDBoost is parameterised over a \texttt{TIME} template argument.
 \texttt{time\_inf<TIME>::value()} provides infinity; a specialization is
@@ -95,7 +80,7 @@ Common choices:
   Type & Representation & Risk \\
   \midrule
   \texttt{double} & IEEE 754 double & $1/10$ not exact; errors may break causality chain and are unbounded \\
-  \texttt{boost::rational<int>} & exact fraction & no accumulation error; heavier compute \\
+  \texttt{boost::rational<int>} & exact fraction & no rounding error; heavier compute \\
   \bottomrule
 \end{tabular}
 \end{center}
@@ -103,5 +88,3 @@ Common choices:
 CDBoost ships \texttt{cdboost::rational\_time.hpp} which specialises
 \texttt{time\_inf<boost::rational<int>{}>} so that \texttt{boost::rational}
 satisfies the TIME requirements without further wrapping.
-
-\end{document}

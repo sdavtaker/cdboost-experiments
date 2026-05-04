@@ -1,23 +1,5 @@
-\documentclass[11pt,a4paper]{article}
-\usepackage{amsmath,amssymb}
-\usepackage{booktabs}
-\usepackage{microtype}
-\usepackage{parskip}
-
-\title{VDW14 Tick-Counter --- CDBoost PDEVS\\
-  \large Model Specification and Implementation Notes}
-\author{Damián Vicino}
-\date{2026}
-
-\begin{document}
-\maketitle
-
-\noindent
-\textbf{CDBoost implementation context:} see
-\texttt{cdboost-experiments/cdboost-impl-notes.tex}.
-
 % ─────────────────────────────────────────────────────────────────────────────
-\section*{Model}
+\subsection*{Model}
 
 Tick-counter coupled model under PDEVS:
 \[
@@ -34,7 +16,7 @@ Tick-counter coupled model under PDEVS:
 
 Expected invariant: every output of $K$ equals $10$.
 
-\subsection*{Atomic model definitions}
+\subsubsection*{Atomic model definitions}
 
 Generator $G_p$:
 \[
@@ -56,7 +38,7 @@ Counter $K$ ($S_K = \mathbb{N} \times \{\text{idle},\, \text{ready}\}$):
 Confluence (internal-first):
 $\delta^K_{\text{con}}(s, e, x) = \delta^K_{\text{ext}}(\delta^K_{\text{int}}(s), 0, x)$
 
-\subsection*{Message encoding}
+\subsubsection*{Message encoding}
 
 CDBoost uses value-based coupling: $G_{1/10}$ outputs $1$ (tick) and $G_1$
 outputs $0$ (reset).  Both route to $K$ via IC.  $K$ distinguishes the two
@@ -65,7 +47,7 @@ triggers output and reset.  This matches the \texttt{infinite\_counter} model
 shipped with CDBoost.
 
 % ─────────────────────────────────────────────────────────────────────────────
-\section*{Implementation Notes}
+\subsection*{Implementation Notes}
 
 \paragraph{Counter $K$.}
 \texttt{cdboost::pdevs::basic\_models::infinite\_counter<TIME, std::any>},
@@ -86,14 +68,13 @@ not by float end-time, to keep the float and rational runs comparable.
 \texttt{boost::rational<int>} (see expectations below).
 
 % ─────────────────────────────────────────────────────────────────────────────
-\section*{Expected Observations}
+\subsection*{Expected Observations}
 
 \textbf{Double time:} IEEE~754 cannot represent $1/10$ exactly.
-Accumulated error over repeated addition of \texttt{0.1} shifts occasional
-$G_{1/10}$ ticks across a 1-second boundary; $K$ outputs $9$ or $11$.
+Floating-point error shifts occasional $G_{1/10}$ ticks across a
+1-second boundary; $K$ outputs $9$ or $11$.  Errors may break the
+causality chain and are unbounded.
 
 \textbf{Rational time:} $G_{1/10}$ and $G_1$ are always simultaneously
 imminent at integer seconds; confluence correctly resolves the tie and $K$
 always outputs $10$.
-
-\end{document}

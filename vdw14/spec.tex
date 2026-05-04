@@ -4,115 +4,96 @@
 \usepackage{microtype}
 \usepackage{parskip}
 
-\title{VDW14 Tick-Counter Experiment\\
-  \large CDBoost Adaptation --- Portless PDEVS}
+\title{VDW14 Tick-Counter --- CDBoost PDEVS\\
+  \large Model Specification and Implementation Notes}
 \author{Damián Vicino}
 \date{2026}
 
 \begin{document}
 \maketitle
 
-\section*{Reference}
-Vicino, Dalle, Wainer.
-\textit{A Data Type for Discretized Time Representation in DEVS.}
-SIMUTOOLS 2014. \texttt{hal-01055555}.
+\noindent
+\textbf{CDBoost implementation context:} see
+\texttt{cdboost-experiments/cdboost-impl-notes.tex}.
 
-\section*{Canonical Model}
+% ─────────────────────────────────────────────────────────────────────────────
+\section*{Model}
 
-The tick-counter coupled model $C$ demonstrates causality errors from
-floating-point time representation.
-
+Tick-counter coupled model under PDEVS:
 \[
   C = \langle X_C,\, Y_C,\, D,\, \{M_d\},\, \text{EIC},\, \text{EOC},\, \text{IC} \rangle
 \]
 \[
-  D = \{G_{1/10},\; G_{1},\; K\},\quad
-  X_C = \emptyset,\quad
-  Y_C \subseteq \mathbb{N}
+  D = \{G_{1/10},\; G_{1},\; K\},\quad X_C = \emptyset,\quad Y_C \subseteq \mathbb{N}
 \]
 \[
-  \text{IC} = \{(G_{1/10}.\texttt{out} \to K.\texttt{add}),\;
-               (G_{1}.\texttt{out} \to K.\texttt{reset})\}
-\]
-\[
-  \text{EOC} = \{(K.\texttt{sum} \to C.\texttt{out})\}
+  \text{IC} = \{(G_{1/10} \to K),\; (G_{1} \to K)\}
+  \qquad
+  \text{EOC} = \{(K \to C.\texttt{out})\}
 \]
 
-Generator $G_p = \langle S_G, ta_G, \delta^G_{\text{int}}, \lambda_G \rangle$:
+Expected invariant: every output of $K$ equals $10$.
+
+\subsection*{Atomic model definitions}
+
+Generator $G_p$:
 \[
-  S_G = \mathbb{R}^+,\quad
-  ta_G(s) = p,\quad
-  \delta^G_{\text{int}}(s) = s,\quad
-  \lambda_G(s) = \mathit{tick}
+  ta_{G}(s) = p,\quad \delta^G_{\text{int}}(s) = s,\quad \lambda_G(s) = \mathit{out}
 \]
 
-Counter $K = \langle S_K, ta_K, \delta^K_{\text{int}},
-\delta^K_{\text{ext}}, \delta^K_{\text{con}}, \lambda_K \rangle$,
-$S_K = \mathbb{N} \times \{\text{idle},\, \text{ready}\}$:
+Counter $K$ ($S_K = \mathbb{N} \times \{\text{idle},\, \text{ready}\}$):
 \begin{align*}
   ta_K(n,\text{idle})  &= \infty \qquad ta_K(n,\text{ready}) = 0 \\
   \delta^K_{\text{ext}}(s,e,x) &=
     \begin{cases}
-      (n + 1,\; \text{idle})  & x \in \texttt{add}\\
-      (n,\;     \text{ready}) & x \in \texttt{reset}
+      (n + |x|,\; \text{idle})  & \forall m \in x: m \neq 0 \\
+      (n,\;       \text{ready}) & \exists m \in x: m = 0
     \end{cases} \\
   \delta^K_{\text{int}}(n,\text{ready}) &= (0,\, \text{idle}) \\
-  \lambda_K(n, \text{ready})            &= n
+  \lambda_K(n,\text{ready})             &= n
 \end{align*}
 
-Expected invariant: every output of $K$ equals $10$.
+Confluence (internal-first):
+$\delta^K_{\text{con}}(s, e, x) = \delta^K_{\text{ext}}(\delta^K_{\text{int}}(s), 0, x)$
 
-\section*{CDBoost Adaptation}
+\subsection*{Message encoding}
 
-CDBoost implements a \emph{portless} PDEVS: all submodels in a coupled model
-share a single message type \texttt{MSG}.  Routing is expressed as a list of
-\texttt{(sender, receiver)} pointer pairs; there are no named ports.
+CDBoost uses value-based coupling: $G_{1/10}$ outputs $1$ (tick) and $G_1$
+outputs $0$ (reset).  Both route to $K$ via IC.  $K$ distinguishes the two
+signals by value:  any non-zero message increments the count; a zero message
+triggers output and reset.  This matches the \texttt{infinite\_counter} model
+shipped with CDBoost.
 
-Because $K$ receives two semantically distinct signals (\texttt{add} and
-\texttt{reset}) on a single channel, the message \emph{value} must distinguish
-them.  The adopted convention is:
+% ─────────────────────────────────────────────────────────────────────────────
+\section*{Implementation Notes}
 
-\begin{center}
-\begin{tabular}{@{}ll@{}}
-  \toprule
-  \texttt{MSG} value & Semantics \\
-  \midrule
-  $v \neq 0$ & add $v$ to the counter \\
-  $0$        & output current count, then reset to zero \\
-  \bottomrule
-\end{tabular}
-\end{center}
+\paragraph{Counter $K$.}
+\texttt{cdboost::pdevs::basic\_models::infinite\_counter<TIME, std::any>},
+wrapped via \texttt{k\_counter.hpp}.
 
-This matches the \texttt{infinite\_counter} model shipped with CDBoost.
-$G_{1/10}$ outputs $1$; $G_{1}$ outputs $0$.  Both are routed to $K$ via IC.
+\paragraph{Generators.}
+\texttt{cdboost::pdevs::basic\_models::generator<TIME, std::any>},
+instantiated by factory functions in \texttt{tick\_gen.hpp} and
+\texttt{reset\_gen.hpp}.  Periods are passed as constructor arguments to
+allow both \texttt{double} and \texttt{boost::rational<int>} callers.
 
-\paragraph{Confluence.}
-When $G_{1/10}$ and $G_1$ are simultaneously imminent---which occurs at every
-integer second under exact arithmetic---the confluence function determines
-whether the add or the reset is processed first:
-\[
-  \delta^K_{\text{con}}(s, e, x) = \delta^K_{\text{ext}}
-      \!\left(\delta^K_{\text{int}}(s),\; 0,\; x\right)
-\]
-This rule applies the internal transition first (clear the ready flag if set),
-then applies the external input, which corresponds to processing \texttt{add}
-before \texttt{reset} when $G_{1/10} \prec G_1$.
+\paragraph{Simulation driver.}
+Output is collected by calling \texttt{coordinator::collectOutputs(t)}
+before each \texttt{advanceSimulation(t)}.  Termination is by reset count,
+not by float end-time, to keep the float and rational runs comparable.
 
-\paragraph{Time representation.}
-CDBoost requires a \texttt{TIME} type with a static \texttt{Inf()} method;
-primitive \texttt{float} and \texttt{boost::rational} do not satisfy this
-directly and need thin wrappers (\texttt{cdboost::float\_time},
-\texttt{cdboost::rational\_time}).
+\paragraph{TIME types exercised.} \texttt{double} and
+\texttt{boost::rational<int>} (see expectations below).
 
+% ─────────────────────────────────────────────────────────────────────────────
 \section*{Expected Observations}
 
-\begin{itemize}
-  \item \textbf{Rational time:} $K$ always outputs $10$.  The histogram has a
-        single bar.
-  \item \textbf{Float time:} $G_{1/10}$'s period $0.1$ is not exactly
-        representable in IEEE~754.  Accumulated rounding error occasionally
-        shifts a $G_{1/10}$ tick across a 1-second boundary; $K$ then outputs
-        $9$ or $11$.  The effect is stochastic and grows with simulation length.
-\end{itemize}
+\textbf{Double time:} IEEE~754 cannot represent $1/10$ exactly.
+Accumulated error over repeated addition of \texttt{0.1} shifts occasional
+$G_{1/10}$ ticks across a 1-second boundary; $K$ outputs $9$ or $11$.
+
+\textbf{Rational time:} $G_{1/10}$ and $G_1$ are always simultaneously
+imminent at integer seconds; confluence correctly resolves the tie and $K$
+always outputs $10$.
 
 \end{document}

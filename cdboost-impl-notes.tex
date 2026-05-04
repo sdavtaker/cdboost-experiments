@@ -1,0 +1,107 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{microtype}
+\usepackage{parskip}
+
+\title{CDBoost --- Implementation Notes\\
+  \large Assumptions and Context Common to All Experiments}
+\author{Damián Vicino}
+\date{2026}
+
+\begin{document}
+\maketitle
+
+This document records the formalism choices, simulator capabilities, and
+conventions that apply to every experiment in this repository.
+Experiment-specific specs should reference these notes rather than repeat them.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section*{Foundational Reference}
+
+The tick-counter experiment reproduced in this repository originates from:
+
+\begin{quote}
+  Damian Vicino, Olivier Dalle, Gabriel A.\ Wainer.
+  \textit{A Data Type for Discretized Time Representation in DEVS.}
+  SIMUTOOLS 2014. \texttt{hal-01055555}.
+\end{quote}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section*{CDBoost PDEVS}
+
+CDBoost implements Parallel DEVS (PDEVS) as originally formulated.
+The original PDEVS formalism does not specify a typed port system; CDBoost
+follows this faithfully.  Coupling is expressed as a list of
+\texttt{(sender, receiver)} model pointer pairs; all submodels in a
+coupled model share a single message type \texttt{MSG}.  This is a
+deliberate design choice, not a restriction.
+
+Multiple simultaneous messages are delivered as a \textbf{message bag}
+(\texttt{std::vector<MSG>}).
+
+When a model is both imminent and receives external input, the
+\textbf{confluence function} $\delta_{\text{con}}$ resolves the two transitions.
+CDBoost's default (and the convention used in these experiments) is
+internal-first:
+\[
+  \delta_{\text{con}}(s, e, x) =
+    \delta_{\text{ext}}\!\left(\delta_{\text{int}}(s),\; 0,\; x\right)
+\]
+
+\subsection*{Coupled Model Structure}
+
+\texttt{coupled<TIME>} takes four constructor arguments:
+\begin{itemize}
+  \item \texttt{models} --- all submodel pointers
+  \item \texttt{eic}    --- external input coupling (models that receive external input)
+  \item \texttt{ic}     --- internal coupling as \texttt{(sender, receiver)} pairs
+  \item \texttt{eoc}    --- external output coupling (models whose output leaves the coupled model)
+\end{itemize}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section*{Message Type}
+
+Because \texttt{MSG} is shared across a coupled model, semantically
+distinct signals must be encoded in the value.  The convention used in
+these experiments:
+
+\begin{center}
+\begin{tabular}{@{}ll@{}}
+  \toprule
+  \texttt{MSG} value & Semantics \\
+  \midrule
+  $v \neq 0$ & add $v$ to the counter \\
+  $0$        & output current count, then reset to zero \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+Concretely, \texttt{MSG = std::any} wrapping \texttt{int}.  The
+\texttt{infinite\_counter} basic model in CDBoost expects this encoding.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section*{TIME Type}
+
+CDBoost is parameterised over a \texttt{TIME} template argument.
+\texttt{time\_inf<TIME>::value()} provides infinity; a specialization is
+required for types without \texttt{std::numeric\_limits<TIME>::infinity()}.
+
+Common choices:
+
+\begin{center}
+\begin{tabular}{@{}lll@{}}
+  \toprule
+  Type & Representation & Risk \\
+  \midrule
+  \texttt{double} & IEEE 754 double & $1/10$ not exact; accumulation error \\
+  \texttt{boost::rational<int>} & exact fraction & no accumulation error; heavier compute \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+CDBoost ships \texttt{cdboost::rational\_time.hpp} which specialises
+\texttt{time\_inf<boost::rational<int>{}>} so that \texttt{boost::rational}
+satisfies the TIME requirements without further wrapping.
+
+\end{document}

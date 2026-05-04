@@ -1,0 +1,9 @@
+{
+    "name": "cdboost-experiments",
+    "version": "0.1.0",
+    "dependencies": [
+        "boost-rational",
+        "catch2",
+        "spdlog"
+    ]
+}

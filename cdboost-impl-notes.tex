@@ -2,28 +2,29 @@ This section records the formalism choices, simulator capabilities, and
 conventions that apply to every experiment in this repository.
 
 % ─────────────────────────────────────────────────────────────────────────────
-\subsection*{Foundational Reference}
+\subsection*{Foundational References}
 
-The tick-counter experiment reproduced in this repository originates from:
-
-\begin{quote}
-  Damian Vicino, Olivier Dalle, Gabriel A.\ Wainer.
-  \textit{A Data Type for Discretized Time Representation in DEVS.}
-  SIMUTOOLS 2014. \texttt{hal-01055555}.
-\end{quote}
+The tick-counter experiment reproduced in this repository originates
+from~\cite{VDW14}.  The CDBoost simulator architecture used to run all
+experiments is described in~\cite{VNWD15}.
 
 % ─────────────────────────────────────────────────────────────────────────────
 \subsection*{CDBoost PDEVS}
 
-CDBoost implements Parallel DEVS (PDEVS) as originally formulated.
+CDBoost implements Parallel DEVS (PDEVS) as originally formulated,
+following the sequential call/return architecture of~\cite{VNWD15}.
+That paper defines how all simulation steps execute in a single thread
+with a call stack whose depth is linear in the model hierarchy --- an
+important property for resource-constrained deployments.
+
 The original PDEVS formalism does not specify a port system; CDBoost
 follows this faithfully.  Coupling is expressed as a list of
 \texttt{(sender, receiver)} model pointer pairs; all submodels in a
 coupled model share a single message type \texttt{MSG}.  This is a
 deliberate design choice, not a restriction.
 
-Multiple simultaneous messages are delivered as a \textbf{message bag}
-(\texttt{std::vector<MSG>}).
+Multiple simultaneous messages are delivered as a
+\textbf{message bag} (type \texttt{std::vector<MSG>}).
 
 When a model is both imminent and receives external input, the
 \textbf{confluence function} $\delta_{\text{con}}$ resolves the two transitions.
@@ -47,14 +48,25 @@ internal-first:
 % ─────────────────────────────────────────────────────────────────────────────
 \subsection*{Message Type}
 
-Because \texttt{MSG} is shared across a coupled model, semantically
-distinct signals must be encoded in the value.  The convention used in
-these experiments:
+CDBoost uses \texttt{MSG = std::any} as the single shared message type
+across a coupled model.  The only constraint the interface imposes is
+that two models connected via IC, EOC, or EIC must agree on the
+concrete C++ type stored inside \texttt{std::any} at that connection.
+The simulator itself enforces nothing beyond this: all messages travel
+as type-erased \texttt{std::any} values.
+
+The concrete type carried inside \texttt{std::any} is an
+experiment-level decision.  Choosing it for a particular experiment or
+coupling those models with different concrete types is the
+responsibility of the modeller, not the simulator.
+
+For the VDW14 tick-counter experiment all models place an \texttt{int}
+inside the \texttt{std::any}.  The encoding is:
 
 \begin{center}
 \begin{tabular}{@{}ll@{}}
   \toprule
-  \texttt{MSG} value & Semantics \\
+  \multicolumn{1}{@{}l}{Value (\texttt{std::any} wrapping \texttt{int})} & Semantics \\
   \midrule
   $v \neq 0$ & add $v$ to the counter \\
   $0$        & output current count, then reset to zero \\
@@ -62,29 +74,55 @@ these experiments:
 \end{tabular}
 \end{center}
 
-Concretely, \texttt{MSG = std::any} wrapping \texttt{int}.  The
-\texttt{infinite\_counter} basic model in CDBoost expects this encoding.
-
 % ─────────────────────────────────────────────────────────────────────────────
 \subsection*{TIME Type}
 
 CDBoost is parameterised over a \texttt{TIME} template argument.
-\texttt{time\_inf<TIME>::value()} provides infinity; a specialization is
-required for types without \texttt{std::numeric\_limits<TIME>::infinity()}.
+Infinity is provided via \texttt{time\_inf<TIME>::value()}; a
+specialisation is required for types that do not expose
+\texttt{std::numeric\_limits<TIME>::infinity()}.
 
 Common choices:
 
+{\small
 \begin{center}
-\begin{tabular}{@{}lll@{}}
+\begin{tabular}{@{}llp{5cm}@{}}
   \toprule
   Type & Representation & Risk \\
   \midrule
-  \texttt{double} & IEEE 754 double & $1/10$ not exact; errors may break causality chain and are unbounded \\
-  \texttt{boost::rational<int>} & exact fraction & no rounding error; heavier compute \\
+  \texttt{double} & IEEE~754 double &
+    $1/10$ not exact; errors may break the causality
+    chain and are unbounded \\[4pt]
+  \texttt{boost::rational<int>} & exact fraction &
+    no rounding error; heavier compute \\
   \bottomrule
 \end{tabular}
-\end{center}
+\end{center}}
 
-CDBoost ships \texttt{cdboost::rational\_time.hpp} which specialises
-\texttt{time\_inf<boost::rational<int>{}>} so that \texttt{boost::rational}
-satisfies the TIME requirements without further wrapping.
+CDBoost ships \texttt{cdboost/rational\_time.hpp}, which provides a
+\texttt{time\_inf} specialisation for \texttt{boost::rational<int>},
+so that \texttt{boost::rational} satisfies the TIME requirements
+without further wrapping.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\subsection*{Log Format}
+
+CDBoost emits structured \textbf{NDJSON} (Newline-Delimited JSON) to
+stdout --- one JSON object per line.  Every record carries a
+wall-clock timestamp (\texttt{ts}), a severity level (\texttt{level}),
+a structured event name (\texttt{event}), and a human-readable message
+(\texttt{msg}).  Events that occur during the simulation additionally
+include \texttt{sim\_time}, the logical clock value at that instant.
+
+In these experiments the log will contain:
+\begin{itemize}
+  \item a \texttt{simulation\_start} record at $t = 0$,
+  \item one \texttt{tick} record per output emitted by the counter
+        model, carrying the count in \texttt{msg},
+  \item a \texttt{simulation\_end} record at the configured time limit,
+  \item a \texttt{performance} record reporting total wall time.
+\end{itemize}
+
+For the complete event schema, optional fields, and \texttt{jq}
+recipes for post-processing, see
+\texttt{simulators/cdboost/docs/log-format.md}.

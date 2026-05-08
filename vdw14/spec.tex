@@ -1,7 +1,38 @@
 % ─────────────────────────────────────────────────────────────────────────────
-\subsection*{Model}
+\subsection*{Overview}
 
-Tick-counter coupled model under PDEVS:
+The tick-counter model simulates a periodic tick source that is counted
+over time and periodically registered and reset.  Two generators
+produce events at different rates: a fast generator fires every
+$1/10$~s (the \emph{tick}) and a slow generator fires every $1$~s (the
+\emph{reset}).  A counter model accumulates incoming ticks and, upon
+receiving a reset signal, outputs the current count and resets to zero.
+Ideally the counter outputs $10$ at every reset.  The experiment
+reveals whether the chosen TIME type preserves this invariant under
+floating-point arithmetic.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\subsection*{Model Diagram}
+
+\begin{center}
+\begin{tikzpicture}[
+  box/.style={draw, rectangle, minimum width=1.8cm, minimum height=0.9cm, align=center},
+  >=Stealth
+]
+  \node[box] (g10) at (0, 0.9) {$G_{1/10}$};
+  \node[box] (g1)  at (0,-0.9) {$G_1$};
+  \node[box] (k)   at (4.5, 0) {$K$};
+
+  \draw[->] (g10) -- node[above, font=\small] {\texttt{int}: 1} (k);
+  \draw[->] (g1)  -- node[below, font=\small] {\texttt{int}: 0} (k);
+  \draw[->] (k)   -- node[above, font=\small] {\texttt{int}: count}
+                     (6.5, 0) node[right, font=\small] {\texttt{out}};
+\end{tikzpicture}
+\end{center}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\subsection*{Coupled Model}
+
 \[
   C = \langle X_C,\, Y_C,\, D,\, \{M_d\},\, \text{EIC},\, \text{EOC},\, \text{IC} \rangle
 \]
@@ -9,6 +40,8 @@ Tick-counter coupled model under PDEVS:
   D = \{G_{1/10},\; G_{1},\; K\},\quad X_C = \emptyset,\quad Y_C \subseteq \mathbb{N}
 \]
 \[
+  \text{EIC} = \emptyset
+  \qquad
   \text{IC} = \{(G_{1/10} \to K),\; (G_{1} \to K)\}
   \qquad
   \text{EOC} = \{(K \to C.\texttt{out})\}
@@ -16,56 +49,111 @@ Tick-counter coupled model under PDEVS:
 
 Expected invariant: every output of $K$ equals $10$.
 
-\subsubsection*{Atomic model definitions}
+% ─────────────────────────────────────────────────────────────────────────────
+\subsubsection*{Atomic Model Definitions}
 
-Generator $G_p$:
+\paragraph{Generator $G_{1/10}$.}
+
 \[
-  ta_{G}(s) = p,\quad \delta^G_{\text{int}}(s) = s,\quad \lambda_G(s) = \mathit{out}
+  G_{1/10} = \langle X,\; Y,\; S,\;
+               \delta_{\text{ext}},\; \delta_{\text{int}},\; \delta_{\text{con}},\;
+               \lambda,\; ta \rangle
 \]
-
-Counter $K$ ($S_K = \mathbb{N} \times \{\text{idle},\, \text{ready}\}$):
 \begin{align*}
-  ta_K(n,\text{idle})  &= \infty \qquad ta_K(n,\text{ready}) = 0 \\
-  \delta^K_{\text{ext}}(s,e,x) &=
+  X &= \emptyset \\
+  Y &= \mathbb{Z} \\
+  S &= \{\bullet\} \\
+  \delta_{\text{ext}} &= \bot
+    \quad\text{(undefined; } X = \emptyset\text{)} \\
+  \delta_{\text{int}}(\bullet) &= \bullet \\
+  \delta_{\text{con}} &= \bot
+    \quad\text{(undefined; } X = \emptyset\text{)} \\
+  \lambda(\bullet) &= 1 \\
+  ta(\bullet) &= \tfrac{1}{10}
+\end{align*}
+
+\noindent\textit{Implementation.}
+\texttt{basic\_models::generator<TIME,\,std::any>}
+from namespace \texttt{cdboost::pdevs}; see \texttt{tick\_gen.hpp}.
+$S$ is the trivial single state internal to \texttt{generator}.
+$Y$ is realised as \texttt{std::any} wrapping \texttt{int};
+the concrete value transported is $1$ (tick signal).
+No EIC connection --- $X = \emptyset$.
+
+\paragraph{Generator $G_1$.}
+
+\[
+  G_1 = \langle X,\; Y,\; S,\;
+          \delta_{\text{ext}},\; \delta_{\text{int}},\; \delta_{\text{con}},\;
+          \lambda,\; ta \rangle
+\]
+\begin{align*}
+  X &= \emptyset \\
+  Y &= \mathbb{Z} \\
+  S &= \{\bullet\} \\
+  \delta_{\text{ext}} &= \bot \\
+  \delta_{\text{int}}(\bullet) &= \bullet \\
+  \delta_{\text{con}} &= \bot \\
+  \lambda(\bullet) &= 0 \\
+  ta(\bullet) &= 1
+\end{align*}
+
+\noindent\textit{Implementation.}
+\texttt{basic\_models::generator<TIME,\,std::any>}
+from namespace \texttt{cdboost::pdevs}; see \texttt{reset\_gen.hpp}.
+$Y$ is realised as \texttt{std::any} wrapping \texttt{int};
+the concrete value transported is $0$ (reset signal).
+No EIC connection --- $X = \emptyset$.
+
+\paragraph{Counter $K$.}
+
+\[
+  K = \langle X,\; Y,\; S,\;
+       \delta_{\text{ext}},\; \delta_{\text{int}},\; \delta_{\text{con}},\;
+       \lambda,\; ta \rangle
+\]
+\begin{align*}
+  X &= \mathbb{Z} \\
+  Y &= \mathbb{N} \\
+  S &= \mathbb{N} \times \{\text{idle},\; \text{ready}\}
+\end{align*}
+\begin{align*}
+  ta(n,\text{idle})  &= \infty & ta(n,\text{ready}) &= 0 \\[4pt]
+  \delta_{\text{ext}}(s,e,x) &=
     \begin{cases}
       (n + |x|,\; \text{idle})  & \forall m \in x: m \neq 0 \\
       (n,\;       \text{ready}) & \exists m \in x: m = 0
-    \end{cases} \\
-  \delta^K_{\text{int}}(n,\text{ready}) &= (0,\, \text{idle}) \\
-  \lambda_K(n,\text{ready})             &= n
+    \end{cases} \\[4pt]
+  \delta_{\text{int}}(n,\text{ready}) &= (0,\; \text{idle}) \\[4pt]
+  \delta_{\text{con}}(s, e, x) &=
+    \delta_{\text{ext}}\!\left(\delta_{\text{int}}(s),\; 0,\; x\right) \\[4pt]
+  \lambda(n,\text{ready}) &= n
 \end{align*}
 
-Confluence (internal-first):
-$\delta^K_{\text{con}}(s, e, x) = \delta^K_{\text{ext}}(\delta^K_{\text{int}}(s), 0, x)$
-
-\subsubsection*{Message encoding}
-
-CDBoost uses value-based coupling: $G_{1/10}$ outputs $1$ (tick) and $G_1$
-outputs $0$ (reset).  Both route to $K$ via IC.  $K$ distinguishes the two
-signals by value:  any non-zero message increments the count; a zero message
-triggers output and reset.  This matches the \texttt{infinite\_counter} model
-shipped with CDBoost.
+\noindent\textit{Implementation.}
+\texttt{basic\_models::infinite\_counter<TIME,\,std::any>}
+from namespace \texttt{cdboost::pdevs}; see \texttt{k\_counter.hpp}.
+$S$ is stored as \texttt{(n:~int,~mode)} where \texttt{mode} is an
+internal enum \texttt{\{idle,~ready\}}.
+$X$ is realised as \texttt{std::any} wrapping \texttt{int}: the concrete
+values transported are~$1$ (tick from $G_{1/10}$) and~$0$ (reset from
+$G_1$).
+$Y$ is realised as \texttt{std::any} wrapping \texttt{int}: the concrete
+value transported is the accumulated count $n$.
 
 % ─────────────────────────────────────────────────────────────────────────────
-\subsection*{Implementation Notes}
+\subsection*{Simulation Setup}
 
-\paragraph{Counter $K$.}
-\texttt{cdboost::pdevs::basic\_models::infinite\_counter<TIME, std::any>},
-wrapped via \texttt{k\_counter.hpp}.
-
-\paragraph{Generators.}
-\texttt{cdboost::pdevs::basic\_models::generator<TIME, std::any>},
-instantiated by factory functions in \texttt{tick\_gen.hpp} and
-\texttt{reset\_gen.hpp}.  Periods are passed as constructor arguments to
-allow both \texttt{double} and \texttt{boost::rational<int>} callers.
-
-\paragraph{Simulation driver.}
-Output is collected by calling \texttt{coordinator::collectOutputs(t)}
-before each \texttt{advanceSimulation(t)}.  Termination is by reset count,
-not by float end-time, to keep the float and rational runs comparable.
+Both TIME variants are driven by the CDBoost \texttt{runner} with a
+fixed target time limit passed to \texttt{runner::runUntil}.  The
+runner calls \texttt{collectOutputs} before each
+\texttt{advanceSimulation} step and stops when logical time reaches
+the limit.  If the two runs produce logs of different length (e.g.\
+due to causality breaks in the float run), the longer log is truncated
+to the shorter run for comparison.
 
 \paragraph{TIME types exercised.} \texttt{double} and
-\texttt{boost::rational<int>} (see expectations below).
+\texttt{boost::rational<int>}.
 
 % ─────────────────────────────────────────────────────────────────────────────
 \subsection*{Expected Observations}
@@ -76,5 +164,5 @@ Floating-point error shifts occasional $G_{1/10}$ ticks across a
 causality chain and are unbounded.
 
 \textbf{Rational time:} $G_{1/10}$ and $G_1$ are always simultaneously
-imminent at integer seconds; confluence correctly resolves the tie and $K$
-always outputs $10$.
+imminent at integer seconds; confluence correctly resolves the tie and
+$K$ always outputs $10$.

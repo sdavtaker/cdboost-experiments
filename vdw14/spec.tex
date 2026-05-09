@@ -61,21 +61,24 @@ Expected invariant: every output of $K$ equals $10$.
 \]
 \begin{align*}
   X &= \emptyset \\
-  Y &= \mathbb{Z} \\
-  S &= \{\bullet\} \\
+  Y &= \{1\} \\
+  S &= \bigl[0,\;\tfrac{1}{10}\,\text{s}\bigr) \\
   \delta_{\text{ext}} &= \bot
     \quad\text{(undefined; } X = \emptyset\text{)} \\
-  \delta_{\text{int}}(\bullet) &= \bullet \\
+  \delta_{\text{int}}(s) &= 0 \\
   \delta_{\text{con}} &= \bot
     \quad\text{(undefined; } X = \emptyset\text{)} \\
-  \lambda(\bullet) &= 1 \\
-  ta(\bullet) &= \tfrac{1}{10}
+  \lambda(s) &= 1 \\
+  ta(s) &= \tfrac{1}{10}\,\text{s} - s
 \end{align*}
 
 \noindent\textit{Implementation.}
 \texttt{basic\_models::generator<TIME,\,std::any>}
 from namespace \texttt{cdboost::pdevs}; see \texttt{tick\_gen.hpp}.
-$S$ is the trivial single state internal to \texttt{generator}.
+$S$ represents elapsed time since the last tick; since $X = \emptyset$
+no external event can advance it, so $s = 0$ always holds at
+transition time and $ta$ effectively returns the constant
+$\tfrac{1}{10}\,\text{s}$.
 $Y$ is realised as \texttt{std::any} wrapping \texttt{int};
 the concrete value transported is $1$ (tick signal).
 No EIC connection --- $X = \emptyset$.
@@ -89,18 +92,21 @@ No EIC connection --- $X = \emptyset$.
 \]
 \begin{align*}
   X &= \emptyset \\
-  Y &= \mathbb{Z} \\
-  S &= \{\bullet\} \\
+  Y &= \{0\} \\
+  S &= \bigl[0,\; 1\,\text{s}\bigr) \\
   \delta_{\text{ext}} &= \bot \\
-  \delta_{\text{int}}(\bullet) &= \bullet \\
+  \delta_{\text{int}}(s) &= 0 \\
   \delta_{\text{con}} &= \bot \\
-  \lambda(\bullet) &= 0 \\
-  ta(\bullet) &= 1
+  \lambda(s) &= 0 \\
+  ta(s) &= 1\,\text{s} - s
 \end{align*}
 
 \noindent\textit{Implementation.}
 \texttt{basic\_models::generator<TIME,\,std::any>}
 from namespace \texttt{cdboost::pdevs}; see \texttt{reset\_gen.hpp}.
+$S$ represents elapsed time since the last reset; since $X = \emptyset$
+no external event can advance it, so $s = 0$ always holds at
+transition time and $ta$ effectively returns the constant $1\,\text{s}$.
 $Y$ is realised as \texttt{std::any} wrapping \texttt{int};
 the concrete value transported is $0$ (reset signal).
 No EIC connection --- $X = \emptyset$.
@@ -113,7 +119,7 @@ No EIC connection --- $X = \emptyset$.
        \lambda,\; ta \rangle
 \]
 \begin{align*}
-  X &= \mathbb{Z} \\
+  X &= \{0,\; 1\} \\
   Y &= \mathbb{N} \\
   S &= \mathbb{N} \times \{\text{idle},\; \text{ready}\}
 \end{align*}

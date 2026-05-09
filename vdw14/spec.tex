@@ -62,14 +62,14 @@ Expected invariant: every output of $K$ equals $10$.
 \begin{align*}
   X &= \emptyset \\
   Y &= \{1\} \\
-  S &= \bigl[0,\;\tfrac{1}{10}\,\text{s}\bigr) \\
+  S &= \bigl[0,\;\tfrac{1}{10}\bigr)\,\text{sec} \\
   \delta_{\text{ext}} &= \bot
     \quad\text{(undefined; } X = \emptyset\text{)} \\
   \delta_{\text{int}}(s) &= 0 \\
   \delta_{\text{con}} &= \bot
     \quad\text{(undefined; } X = \emptyset\text{)} \\
   \lambda(s) &= 1 \\
-  ta(s) &= \tfrac{1}{10}\,\text{s} - s
+  ta(s) &= \bigl(\tfrac{1}{10} - s\bigr)\,\text{sec}
 \end{align*}
 
 \noindent\textit{Implementation.}
@@ -78,7 +78,7 @@ from namespace \texttt{cdboost::pdevs}; see \texttt{tick\_gen.hpp}.
 $S$ represents elapsed time since the last tick; since $X = \emptyset$
 no external event can advance it, so $s = 0$ always holds at
 transition time and $ta$ effectively returns the constant
-$\tfrac{1}{10}\,\text{s}$.
+$\tfrac{1}{10}\,\text{sec}$.
 $Y$ is realised as \texttt{std::any} wrapping \texttt{int};
 the concrete value transported is $1$ (tick signal).
 No EIC connection --- $X = \emptyset$.
@@ -93,12 +93,14 @@ No EIC connection --- $X = \emptyset$.
 \begin{align*}
   X &= \emptyset \\
   Y &= \{0\} \\
-  S &= \bigl[0,\; 1\,\text{s}\bigr) \\
-  \delta_{\text{ext}} &= \bot \\
+  S &= \bigl[0,\; 1\bigr)\,\text{sec} \\
+  \delta_{\text{ext}} &= \bot
+    \quad\text{(undefined; } X = \emptyset\text{)} \\
   \delta_{\text{int}}(s) &= 0 \\
-  \delta_{\text{con}} &= \bot \\
+  \delta_{\text{con}} &= \bot
+    \quad\text{(undefined; } X = \emptyset\text{)} \\
   \lambda(s) &= 0 \\
-  ta(s) &= 1\,\text{s} - s
+  ta(s) &= \bigl(1 - s\bigr)\,\text{sec}
 \end{align*}
 
 \noindent\textit{Implementation.}
@@ -106,7 +108,7 @@ No EIC connection --- $X = \emptyset$.
 from namespace \texttt{cdboost::pdevs}; see \texttt{reset\_gen.hpp}.
 $S$ represents elapsed time since the last reset; since $X = \emptyset$
 no external event can advance it, so $s = 0$ always holds at
-transition time and $ta$ effectively returns the constant $1\,\text{s}$.
+transition time and $ta$ effectively returns the constant $1\,\text{sec}$.
 $Y$ is realised as \texttt{std::any} wrapping \texttt{int};
 the concrete value transported is $0$ (reset signal).
 No EIC connection --- $X = \emptyset$.
@@ -124,10 +126,10 @@ No EIC connection --- $X = \emptyset$.
   S &= \mathbb{N} \times \{\text{idle},\; \text{ready}\}
 \end{align*}
 \begin{align*}
-  ta(n,\text{idle})  &= \infty & ta(n,\text{ready}) &= 0 \\[4pt]
+  ta(\bullet,\text{idle})  &= \infty & ta(\bullet,\text{ready}) &= 0 \\[4pt]
   \delta_{\text{ext}}(s,e,x) &=
     \begin{cases}
-      (n + |x|,\; \text{idle})  & \forall m \in x: m \neq 0 \\
+      (n + |x|,\; \text{idle})  & \forall m \in x: m = 1 \\
       (n,\;       \text{ready}) & \exists m \in x: m = 0
     \end{cases} \\[4pt]
   \delta_{\text{int}}(n,\text{ready}) &= (0,\; \text{idle}) \\[4pt]

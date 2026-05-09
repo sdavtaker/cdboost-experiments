@@ -60,20 +60,6 @@ experiment-level decision.  Choosing it for a particular experiment or
 coupling those models with different concrete types is the
 responsibility of the modeller, not the simulator.
 
-For the VDW14 tick-counter experiment all models place an \texttt{int}
-inside the \texttt{std::any}.  The encoding is:
-
-\begin{center}
-\begin{tabular}{@{}ll@{}}
-  \toprule
-  \multicolumn{1}{@{}l}{Value (\texttt{std::any} wrapping \texttt{int})} & Semantics \\
-  \midrule
-  $v \neq 0$ & add $v$ to the counter \\
-  $0$        & output current count, then reset to zero \\
-  \bottomrule
-\end{tabular}
-\end{center}
-
 % ─────────────────────────────────────────────────────────────────────────────
 \subsection*{TIME Type}
 

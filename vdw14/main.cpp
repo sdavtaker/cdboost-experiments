@@ -11,6 +11,7 @@
 #include <cdboost/rational_time.hpp>
 #include <iostream>
 #include <map>
+#include <string_view>
 
 using namespace cdboost;
 using namespace cdboost::pdevs;
@@ -58,16 +59,24 @@ static void run_experiment(const char *label, TIME tick_period, TIME reset_perio
     std::cout << "\n\n";
 }
 
-int main() {
+int main(int argc, char **argv) {
     cdboost::log::init();
+
+    const char *variant = (argc > 1) ? argv[1] : "all";
 
     std::cout << "VDW14 Tick-Counter Experiment (CDBoost PDEVS)\n"
               << "G_1/10 period=1/10  G_1 period=1  expected counter output=10\n\n";
 
-    run_experiment("double", double{0.1}, double{1.0}, double{10000});
+    if (std::string_view(variant) == "float" || std::string_view(variant) == "all")
+        run_experiment("float", float{0.1f}, float{1.0f}, float{10000});
 
-    using rat = boost::rational<int>;
-    run_experiment("rational", rat{1, 10}, rat{1, 1}, rat{10000});
+    if (std::string_view(variant) == "double" || std::string_view(variant) == "all")
+        run_experiment("double", double{0.1}, double{1.0}, double{10000});
+
+    if (std::string_view(variant) == "rational" || std::string_view(variant) == "all") {
+        using rat = boost::rational<int>;
+        run_experiment("rational", rat{1, 10}, rat{1, 1}, rat{10000});
+    }
 
     return 0;
 }

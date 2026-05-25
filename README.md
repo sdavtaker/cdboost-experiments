@@ -1,4 +1,4 @@
-# CDBoost Experiments
+# CDBoost Experiments [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/sdavtaker/cdboost-experiments/badge)](https://scorecard.dev/viewer/?uri=github.com/sdavtaker/cdboost-experiments)
 
 A collection of experiments using the CDBoost simulator.
 

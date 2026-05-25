@@ -35,12 +35,16 @@ static void run_experiment(const char *label, TIME tick_period, TIME reset_perio
     std::map<int, long long> hist;
 
     runner<TIME, std::any> r(top, TIME{0}, [&](const std::any &msg) -> std::string {
-        int v = std::any_cast<int>(msg);
-        ++total;
-        ++hist[v];
-        if (v != 10)
+        const int *vp = std::any_cast<int>(&msg);
+        if (!vp) {
             ++errors;
-        return std::to_string(v);
+            return "invalid-message-type";
+        }
+        ++total;
+        ++hist[*vp];
+        if (*vp != 10)
+            ++errors;
+        return std::to_string(*vp);
     });
     r.runUntil(run_until_t);
 

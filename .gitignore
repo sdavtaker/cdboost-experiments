@@ -1,1 +1,7 @@
 build/
+.env
+*.log
+texput.log
+*.pdf
+.vscode/
+.idea/

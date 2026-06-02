@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BSD-2-Clause
 #include <boost/rational.hpp>
 #include <cdcommons/time/decimal.hpp>
+#include <cstdint>
 #include <cdcommons/time/mbfp.hpp>
 #include <cdcommons/time/rational.hpp>
 #include <cdcommons/time/rsfp.hpp>

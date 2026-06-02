@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: BSD-2-Clause
-#include "cdcommons_rational_time.hpp"
 #include "k_counter.hpp"
 #include "reset_gen.hpp"
 #include "tick_gen.hpp"

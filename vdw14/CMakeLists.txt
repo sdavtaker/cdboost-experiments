@@ -1,3 +1,5 @@
+find_package(cdcommons CONFIG REQUIRED)
+
 add_executable(vdw14-tick-counter main.cpp)
 target_link_libraries(vdw14-tick-counter PRIVATE cdboost cdcommons::cdcommons)
 

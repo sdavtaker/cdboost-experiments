@@ -17,8 +17,6 @@ set(CDBOOST_BUILD_TESTS    OFF CACHE BOOL "" FORCE)
 set(CDBOOST_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 add_subdirectory("${CDBOOST_DIR}" cdboost-build)
 
-find_package(cdcommons CONFIG REQUIRED)
-
 # Testing
 find_package(Catch2 3 CONFIG REQUIRED)
 include(CTest)

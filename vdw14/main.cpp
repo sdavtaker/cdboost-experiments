@@ -90,13 +90,19 @@ int main(int argc, char **argv) {
     }
 
     if (std::string_view(variant) == "rsfp" || std::string_view(variant) == "all") {
-        using rsfp_t = cdcommons::time::rsfp<1, 10>;
-        run_experiment("rsfp<1,10>", rsfp_t{1}, rsfp_t{10}, rsfp_t{100000});
+        using rsfp_t = cdcommons::time::rsfp<1, 10>; // value = raw × (1/10)
+        run_experiment("rsfp<1,10>", rsfp_t{1},      // 0.1
+                       rsfp_t{10},                   // 1.0
+                       rsfp_t{100000}                // 10000.0
+        );
     }
 
     if (std::string_view(variant) == "mbfp" || std::string_view(variant) == "all") {
-        using mbfp_t = cdcommons::time::mbfp<10, -1>;
-        run_experiment("mbfp<10,-1>", mbfp_t{1}, mbfp_t{10}, mbfp_t{100000});
+        using mbfp_t = cdcommons::time::mbfp<10, -1>; // value = raw × 10^-1
+        run_experiment("mbfp<10,-1>", mbfp_t{1},      // 0.1
+                       mbfp_t{10},                    // 1.0
+                       mbfp_t{100000}                 // 10000.0
+        );
     }
 
     return 0;

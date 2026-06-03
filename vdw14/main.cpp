@@ -1,15 +1,19 @@
 // SPDX-License-Identifier: BSD-2-Clause
-#include <boost/rational.hpp>
-
 #include "k_counter.hpp"
 #include "reset_gen.hpp"
 #include "tick_gen.hpp"
 #include <any>
 #include <cdboost/pdevs/coupled.hpp>
 #include <cdboost/pdevs/runner.hpp>
-#include <cdboost/rational_time.hpp>
+#include <cdcommons/time/decimal.hpp>
+#include <cdcommons/time/mbfp.hpp>
+#include <cdcommons/time/rational.hpp>
+#include <cdcommons/time/rsfp.hpp>
+#include <cstdint>
 #include <iostream>
 #include <map>
+#include <memory>
+#include <string>
 #include <string_view>
 
 using namespace cdboost;
@@ -34,7 +38,7 @@ static void run_experiment(const char *label, TIME tick_period, TIME reset_perio
     long long total = 0, errors = 0;
     std::map<int, long long> hist;
 
-    runner<TIME, std::any> r(top, TIME{0}, [&](const std::any &msg) -> std::string {
+    runner<TIME, std::any> r(top, TIME{}, [&](const std::any &msg) -> std::string {
         const int *vp = std::any_cast<int>(&msg);
         if (!vp) {
             ++errors;
@@ -74,9 +78,31 @@ int main(int argc, char **argv) {
     if (std::string_view(variant) == "double" || std::string_view(variant) == "all")
         run_experiment("double", double{0.1}, double{1.0}, double{10000});
 
+    if (std::string_view(variant) == "decimal" || std::string_view(variant) == "all") {
+        using dec3 = cdcommons::time::decimal<3>;
+        run_experiment("decimal<3>", dec3::from_scaled(100), dec3::from_scaled(1000),
+                       dec3::from_whole(10000));
+    }
+
     if (std::string_view(variant) == "rational" || std::string_view(variant) == "all") {
-        using rat = boost::rational<int>;
-        run_experiment("rational", rat{1, 10}, rat{1, 1}, rat{10000});
+        using rat32 = cdcommons::time::rational<std::int32_t>;
+        run_experiment("rational<int32_t>", rat32{1, 10}, rat32{1, 1}, rat32{10000, 1});
+    }
+
+    if (std::string_view(variant) == "rsfp" || std::string_view(variant) == "all") {
+        using rsfp_t = cdcommons::time::rsfp<1, 10>; // value = raw × (1/10)
+        run_experiment("rsfp<1,10>", rsfp_t{1},      // 0.1
+                       rsfp_t{10},                   // 1.0
+                       rsfp_t{100000}                // 10000.0
+        );
+    }
+
+    if (std::string_view(variant) == "mbfp" || std::string_view(variant) == "all") {
+        using mbfp_t = cdcommons::time::mbfp<10, -1>; // value = raw × 10^-1
+        run_experiment("mbfp<10,-1>", mbfp_t{1},      // 0.1
+                       mbfp_t{10},                    // 1.0
+                       mbfp_t{100000}                 // 10000.0
+        );
     }
 
     return 0;

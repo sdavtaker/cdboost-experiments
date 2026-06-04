@@ -5,6 +5,7 @@
     "dependencies": [
         "boost-rational",
         "catch2",
+        "cdboost",
         "cdcommons",
         "spdlog"
     ]

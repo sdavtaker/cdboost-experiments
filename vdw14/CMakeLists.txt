@@ -1,9 +1,9 @@
 find_package(cdcommons CONFIG REQUIRED)
 
 add_executable(vdw14-tick-counter main.cpp)
-target_link_libraries(vdw14-tick-counter PRIVATE cdboost cdcommons::cdcommons)
+target_link_libraries(vdw14-tick-counter PRIVATE cdboost::cdboost cdcommons::cdcommons)
 
 # Tests
 add_executable(vdw14-tests test_models.cpp)
-target_link_libraries(vdw14-tests PRIVATE cdboost Catch2::Catch2WithMain)
+target_link_libraries(vdw14-tests PRIVATE cdboost::cdboost Catch2::Catch2WithMain)
 add_test(NAME vdw14-tests COMMAND vdw14-tests)

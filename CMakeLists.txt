@@ -1,21 +1,21 @@
 cmake_minimum_required(VERSION 3.28)
+
+# Toolchain must be set before project() so CMake loads vcpkg during compiler detection.
+if(DEFINED ENV{VCPKG_ROOT} AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
+    set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+        CACHE FILEPATH "Path to vcpkg toolchain file")
+    if(NOT EXISTS "${CMAKE_TOOLCHAIN_FILE}")
+        message(FATAL_ERROR "VCPKG_ROOT is set to '$ENV{VCPKG_ROOT}' but toolchain file not found: ${CMAKE_TOOLCHAIN_FILE}")
+    endif()
+endif()
+
 project(cdboost-experiments VERSION 0.1.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-set(CDBOOST_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../simulators/cdboost"
-    CACHE PATH "Path to cdboost source")
-
-if(DEFINED ENV{VCPKG_ROOT} AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
-    set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
-        CACHE STRING "")
-endif()
-
-set(CDBOOST_BUILD_TESTS    OFF CACHE BOOL "" FORCE)
-set(CDBOOST_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-add_subdirectory("${CDBOOST_DIR}" cdboost-build)
+find_package(cdboost CONFIG REQUIRED)
 
 # Testing
 find_package(Catch2 3 CONFIG REQUIRED)

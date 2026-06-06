@@ -1,0 +1,9 @@
+VDW14 Tick-Counter Experiment (CDBoost PDEVS)
+G_1/10 period=1/10  G_1 period=1  expected counter output=10
+
+double:
+  resets:  9999
+  errors:  7 (0.070007 %)
+  range:   [9, 11]
+  histogram:  9x4  10x9992  11x3
+

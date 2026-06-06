@@ -79,8 +79,8 @@ int main(int argc, char **argv) {
         run_experiment("double", double{0.1}, double{1.0}, double{10000});
 
     if (std::string_view(variant) == "decimal" || std::string_view(variant) == "all") {
-        using dec3 = cdcommons::time::decimal<3>;
-        run_experiment("decimal<3>", dec3::from_scaled(100), dec3::from_scaled(1000),
+        using dec3 = cdcommons::time::decimal<-3>;
+        run_experiment("decimal<-3>", dec3::from_scaled(100), dec3::from_scaled(1000),
                        dec3::from_whole(10000));
     }
 

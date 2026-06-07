@@ -36,6 +36,7 @@ static void run_experiment(const char *label, TIME tick_period, TIME reset_perio
         std::initializer_list<model_ptr>{counter});
 
     long long total = 0, errors = 0;
+    long long first_error_ordinal = -1;
     std::map<int, long long> hist;
 
     runner<TIME, std::any> r(top, TIME{}, [&](const std::any &msg) -> std::string {
@@ -46,8 +47,11 @@ static void run_experiment(const char *label, TIME tick_period, TIME reset_perio
         }
         ++total;
         ++hist[*vp];
-        if (*vp != 10)
+        if (*vp != 10) {
             ++errors;
+            if (first_error_ordinal < 0)
+                first_error_ordinal = total;
+        }
         return std::to_string(*vp);
     });
     r.runUntil(run_until_t);
@@ -63,7 +67,15 @@ static void run_experiment(const char *label, TIME tick_period, TIME reset_perio
               << "  histogram:";
     for (const auto &[val, cnt] : hist)
         std::cout << "  " << val << "x" << cnt;
-    std::cout << "\n\n";
+    std::cout << "\n";
+    if (first_error_ordinal >= 0) {
+        std::cout << "  first error: reset #" << first_error_ordinal;
+        if constexpr (std::is_floating_point_v<TIME>)
+            std::cout << "  (approx t=" << (static_cast<TIME>(first_error_ordinal) * reset_period)
+                      << ")";
+        std::cout << "\n";
+    }
+    std::cout << "\n";
 }
 
 int main(int argc, char **argv) {

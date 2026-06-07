@@ -1,6 +1,7 @@
 build/
 .env
 *.log
+**/logs/
 texput.log
 *.pdf
 .vscode/

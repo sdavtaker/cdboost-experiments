@@ -3,6 +3,7 @@
 #include "reset_gen.hpp"
 #include "tick_gen.hpp"
 #include <any>
+#include <cdboost/log.hpp>
 #include <cdboost/pdevs/coupled.hpp>
 #include <cdboost/pdevs/runner.hpp>
 #include <cdcommons/time/decimal.hpp>
@@ -79,6 +80,7 @@ static void run_experiment(const char *label, TIME tick_period, TIME reset_perio
 }
 
 int main(int argc, char **argv) {
+    cdboost::log::init(cdboost::log::level::warn);
     const char *variant = (argc > 1) ? argv[1] : "all";
 
     std::cout << "VDW14 Tick-Counter Experiment (CDBoost PDEVS)\n"

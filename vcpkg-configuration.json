@@ -3,7 +3,7 @@
     {
       "kind": "git",
       "repository": "https://github.com/sdavtaker/vcpkg-registry",
-      "baseline": "60d9302e6cffc01d4d1736213dd836e417df808c",
+      "baseline": "5032e06f7cce9e11d011bebaa964e20be43a0a8e",
       "packages": [ "cdboost", "cdcommons" ]
     }
   ]
